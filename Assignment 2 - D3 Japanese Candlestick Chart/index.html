@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <title>Bitcoin Stock Graph</title>
+        <style>
+
+            .body {
+                background-color: black;
+            }
+
+            .header {
+                text-align: center;
+                color: white;
+            }
+
+            .mainContainer {
+                text-align: center;
+            }
+
+            .tabRow {
+                padding-left: 70px;
+                padding-right: 20px;
+            }
+
+            .tabs {
+                padding: 5px;
+            }
+
+            .tabBtn {
+                margin: 8px;
+            }
+
+            .tabBtn:hover {
+                color: blue !important;
+            }
+
+            .tabBtn:focus{
+                background: #24b0e8;
+            }
+
+            /* Styling the Y-Axis */
+            .yAxis line{
+                stroke: white;
+            }
+
+            .yAxis path{
+                stroke: white;
+            }
+
+            .yAxis text{
+                fill: white;
+                font-family: monospace;
+                font-size: 100%;
+            }
+
+            /* Styling the X-Axis */
+            .xAxis line{
+                stroke: white;
+            }
+
+            .xAxis path{
+                stroke: white;
+            }
+
+            .xAxis text{
+                fill: white;
+                font-family: monospace;
+                font-size: 100%;
+            }
+
+            /* Bitcoin emblem image styling */
+            .bitcoinEmb {
+                height: 100px;
+                width: 210px;
+            }
+
+            /* Adding interactive CSS to Candlesticks */
+            .candlestick {
+                transition: all 0.2s;
+                transform-origin: 50% 50%;
+            }
+
+            .candlestick:hover {
+                transform: scale(1.0);
+                stroke: #0ce7f5;
+                stroke-width:5;
+            }
+
+            .shadows:hover {
+                transform: scale(1.0);
+                stroke: #0ce7f5;
+                stroke-width:5;
+            }
+
+            /* Adding interactive CSS to line chart points */
+            .circlePoints {
+                z-index: -1;
+                transition: all 0.2s;
+                transform-origin: 50% 50%;
+            }
+
+            .circlePoints:hover {
+                transform: scale(1.0);
+                stroke: #0ce7f5;
+                stroke-width:15px;
+            }
+
+            /* Colors chosen tab when tab is selected until another selection is made */
+            .on {
+                transform: scale(1.0);
+                stroke: #0ce7f5;
+                stroke-width:5;
+            }
+
+        </style>
+
+        <!--<script type="text/javascript" src="lib/thirdPartyLib.js"></script>-->
+        
+        <!-- ADD BOOTSTRAP CSS -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
+            integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+        <!-- ADD JQUERY -->
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" 
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+
+        <!-- ADD POPPER.JS -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" 
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+
+        <!-- ADD BOOTSTRAP.JS -->
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" 
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+        <!-- ADD D3 -->
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+
+        <!-- ADD BITCOIN ICON-->
+        <link rel="icon" href="https://collegeworkfiles.s3-eu-west-1.amazonaws.com/Bitcoin_logo_PNG8.png">
+
+    </head>
+    <body class="body">
+
+        <div class="container header">
+            <h1>Interactive Data Visualization</h1>
+            <p>Showcasing the trends in the Bitcoin cryptocurrency in May 2020</p>
+        </div>
+
+        <div class="container mainContainer">
+
+            <div class="row tabRow">
+                <div class="col leftTabCol">
+                    <ul class="nav nav-pills tabs">
+                        <li class="nav-item">
+                            <button type="button" class="btn btn-light tabBtn" onclick="showChart('linechart')">Line-Chart</button>
+                        </li>
+                        <li class="nav-item">
+                            <button type="button" class="btn btn-light tabBtn" onclick="showChart('candlestick')">Candlesticks</button>
+                        </li>
+                        <li class="nav-item">
+                            <button type="button" class="btn btn-light tabBtn" onclick="showChart('combo')">Combo</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col rightTabCol">
+                    <img src="https://collegeworkfiles.s3-eu-west-1.amazonaws.com/Emblem-Bitcoin.jpg" class="bitcoinEmb">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <!-- Div where the graph will be placed -->
+                    <div id="my_dataviz"></div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+
+            // Set the dimensions and margins of the graph
+            var margin = {top: 10, right: 30, bottom: 30, left: 40},
+                width = 1200 - margin.left - margin.right,
+                height = 440 - margin.top - margin.bottom;
+
+            // Append the svg object to the body of the page
+            var SVG = d3.select("#my_dataviz")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform",
+                        "translate(" + margin.left + "," + margin.top + ")")
+
+            // Converts csv string value to time
+            const timeConv = d3.timeParse("%d/%m/%Y");
+
+            // Converts the CSV string values to floats and time
+            var rowConverter = function(d) {
+                return {
+                    Date:   timeConv(d.Date),
+                    High:   parseFloat(d.High),
+                    Low:    parseFloat(d.Low),
+                    Close:  parseFloat(d.Close),
+                    Open:   parseFloat(d.Open)
+                }
+            }
+
+            // Callback to work on the dataset 
+            d3.csv("data/BTC-EUR-Medium.csv", rowConverter, function(data) {
+
+                var sumstat = d3.nest().key(d => d.Date)
+                
+                    .rollup(function(d) {
+
+                        openPrice = d.map(function(g) { return g.Open;})
+                        closePrice = d.map(function(g) { return g.Close;})
+
+                        if (openPrice < closePrice) {
+                            q1 = openPrice;
+                            q3 = closePrice;
+                            color = "#0de127";
+
+                        } else if(openPrice > closePrice) {
+                            q3 = openPrice;
+                            q1 = closePrice;
+                            color = "#f61616";
+                        }
+                        
+                        median = (openPrice[0] + closePrice[0]) / 2; 
+                        min = d.map(function(g) { return g.Low;})
+                        max = d.map(function(g) { return g.High;})
+
+                        return({q1: q1, q3: q3, min: min, max: max, color: color, openPrice: openPrice,  closePrice: closePrice, median: median})
+                    })
+                    .entries(data);
+
+                // Convert key back to date format
+                sumstat.forEach(function(d){
+                    d.key = new Date(d.key);
+                })
+
+                // Show the X scale
+                x = d3.scaleTime()
+                   .range([0, width])
+                    .domain([d3.min(data, d => d.Date), d3.max(data, d => d.Date)])
+                    
+                var xAxis = SVG.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .attr("class", "xAxis")
+                    .call(d3.axisBottom(x))
+
+                // Show the Y scale
+                var y = d3.scaleLinear()
+                    .domain([d3.min(data, d => d.Low), d3.max(data, d => d.High)])
+                    .range([height, 0])
+
+                var yAxis = SVG.append("g")
+                    .attr("class", "yAxis")
+                    .call(d3.axisLeft(y))
+
+                 // Add a clipPath: everything out of this area won't be drawn.
+                var clip = SVG.append("defs").append("SVG:clipPath")
+                    .attr("id", "clip")
+                    .append("SVG:rect")
+                    .attr("width", width )
+                    .attr("height", height )
+                    .attr("x", 0)
+                    .attr("y", 0);
+
+                /* Invisible rectangle added behind the charts display nodes - allows for 
+                zooming when mouse is not over a node i.e the black background */
+
+                SVG.append("rect")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .style("fill", "none")
+                    .style("pointer-events", "all")
+                    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+                                
+                // Create the scatter variable: where both the circles and the brush take place
+                var scatter = SVG.append('g')
+                    .attr("clip-path", "url(#clip)")
+
+                // Show the main vertical line
+                scatter
+                    .selectAll("vertLines")
+                    .data(sumstat)
+                    .enter()
+                    .append("line")
+                    .attr("class", "shadows")
+                    .attr("x1", function(d){return(x(d.key))})
+                    .attr("x2", function(d){return(x(d.key))})
+                    .attr("y1", function(d){return(y(d.value.min))})
+                    .attr("y2", function(d){return(y(d.value.max))})
+                    .attr("stroke", function(d){return d.value.color})
+                    .style("width", 40)
+
+                // Rectangle for candlesticks main body
+                var boxWidth = 20
+
+                scatter
+                    .selectAll("boxes")
+                    .data(sumstat)
+                    .enter()
+                    .append("rect")
+                        .attr("class", "candlestick")
+                        .attr("x", function(d){return(x(d.key)-boxWidth/2)})
+                        .attr("y", function(d){return(y(d.value.q3))})
+                        .attr("height", function(d){return(y(d.value.q1)-y(d.value.q3))})
+                        .attr("width", boxWidth)
+                        .attr("stroke", function(d){return d.value.color})
+                        .attr("rx", "3")
+                        .attr("ry", "3")
+                        .style("fill", function(d){return d.value.color})
+                        .on("click", function(d) {
+
+                            var rect = $("rect");
+
+                            // Check if the candlestick has been clicked, if already on toggle off
+                            if (rect.hasClass("on")) {
+                                rect.removeClass("on")
+                                tooltip
+                                    .transition()
+                                    .duration(200)
+                                    .style("opacity", 0)
+
+                            // If not clicked then activate candlestick
+                            } else {
+                                $(this).addClass("on");
+                                tooltip
+                                    .html("<b>Date:</b> " + d.key + "<br><b>Open:</b> " + d.value.openPrice + "<br><b>High: </b>" 
+                                        + d.value.max + "<br><b>Low: </b>" + d.value.min + "<br><b>Close: </b>" + d.value.closePrice)
+                                    .style("right", (d3.mouse(this)[0]+90) + "px") // It is important to put the +90: other wise the tooltip is exactly where the point is an it creates a weird effect
+                                    .style("top", (d3.mouse(this)[1]) + "px")
+                                    .style("opacity", 1)
+                                }
+                            d3.event.stopPropagation();
+                        });
+
+                    var tooltip = d3.select("#my_dataviz")
+                        .append("div")
+                        .style("opacity", 0)
+                        .attr("class", "hidden tooltip")
+                        .style("background-color", "white")
+                        .style("border", "solid")
+                        .style("border-width", "1px")
+                        .style("border-radius", "5px")
+                        .style("padding", "10px")
+
+                    // Add the area
+                    scatter.append("path")
+                    .datum(sumstat)
+                    .attr("class", "area")
+                    .attr("fill", "#3cb0df")
+                    .attr("fill-opacity", .3)
+                    .attr("stroke", "none")
+                    .attr("d", d3.area()
+                        .x(function(d) { return x(d.key) })
+                        .y0( height )
+                        .y1(function(d) { return y(d.value.median) })
+                        )
+
+                    // Add the line
+                    scatter.append("path")
+                    .datum(sumstat)
+                    .attr("class", "linechart")
+                    .attr("fill", "none")
+                    .attr("stroke", "blue")
+                    .attr("stroke-width", 1.5)
+                    .attr("d", d3.line()
+                        .x(function(d) { return x(d.key) })
+                        .y(function(d) { return y(d.value.median) })
+                        )
+
+                    // Add the circles
+                    scatter.selectAll("myCircles")
+                    .data(sumstat)
+                    .enter()
+                    .append("circle")
+                        .attr("class", "circlePoints")
+                        .attr("fill", "#64d6fb")
+                        .attr("stroke", "none")
+                        .attr("cx", function(d) { return x(d.key) })
+                        .attr("cy", function(d) { return y(d.value.median) })
+                        .attr("r", 3)
+                        .on("click", function(d) {
+
+                            var circle = $("circle");
+
+                            // Check if the candlestick has been clicked, if already on toggle off
+                            if (circle.hasClass("on")) {
+                                circle.removeClass("on")
+                                tooltip
+                                    .transition()
+                                    .duration(200)
+                                    .style("opacity", 0)
+
+                            // If not clicked then activate candlestick
+                            } else {
+                                $(this).addClass("on");
+                                tooltip
+                                    .html("<b>Date:</b> " + d.key + "<br><b>Open:</b> " + d.value.openPrice + "<br><b>High: </b>" 
+                                        + d.value.max + "<br><b>Low: </b>" + d.value.min + "<br><b>Close: </b>" + d.value.closePrice)
+                                    .style("right", (d3.mouse(this)[0]+90) + "px") // It is important to put the +90: other wise the tooltip is exactly where the point is an it creates a weird effect
+                                    .style("top", (d3.mouse(this)[1]) + "px")
+                                    .style("opacity", 1)
+                                }
+                            d3.event.stopPropagation();
+                            });
+
+                // Set the zoom and Pan features: how much you can zoom, on which part, and what to do when there is a zoom
+                var zoom = d3.zoom()
+                    .scaleExtent([1, 20])  // This control how much you can unzoom (x0.5) and zoom (x20)
+                    .extent([[0, 0], [width, height]])
+                    .translateExtent([[0,0],[1200,1200]])
+                    .on("zoom", updateChart);
+
+                SVG.call(zoom).on("dblclick.zoom", null);
+
+                function updateChart() {
+
+                    // recover the new scale
+                    var newX = d3.event.transform.rescaleX(x);
+                    var newY = d3.event.transform.rescaleY(y);
+
+                    // update axes with these new boundaries
+                    xAxis.call(d3.axisBottom(newX))
+                    yAxis.call(d3.axisLeft(newY))
+
+                    // update circle position
+                    scatter
+                        .selectAll("circle")
+                            .attr('cx', function(d) { return newX(d.key)})
+                            .attr('cy', function(d) { return newY(d.value.median)});
+
+                    // update line position
+                    scatter
+                        .select('.linechart')
+                        .attr("d", d3.line()
+                            .x(function(d) { return newX(d.key) })
+                            .y(function(d) { return newY(d.value.median) })
+                        )
+
+                    // update area position
+                    scatter
+                        .select('.area')
+                        .attr("d", d3.area()
+                            .x(function(d) { return newX(d.key) })
+                            .y0( height )
+                            .y1(function(d) { return newY(d.value.median) })
+                            )
+
+                    // // update candlestick position
+                    scatter
+                        .selectAll("rect")
+                            .attr("x", function(d) { return(newX(d.key)-boxWidth/2)})
+                            .attr("y", function(d) { return(newY(d.value.q3))})
+                            .attr("height", function(d) { return(newY(d.value.q1)-newY(d.value.q3))})
+                            .attr("width", boxWidth)
+
+                    // // update shadow position
+                    scatter
+                        .selectAll("line")
+                            .attr("x1", function(d) { return(newX(d.key))})
+                            .attr("x2", function(d) { return(newX(d.key))})
+                            .attr("y1", function(d) { return(newY(d.value.min))})
+                            .attr("y2", function(d) { return(newY(d.value.max))})
+                            .attr("stroke", function(d) { return d.value.color})
+                            .style("width", 40)
+                }
+
+            })
+
+            // Function to toggle through the three charts (Linechart, Japanese Candlesticks, Combo of both)
+            function showChart(className) {
+
+                var toggleElement = function(el, display) {
+                    el.style.display = display ? '' : 'none';
+                };
+
+                // Hide any open tooltips
+
+                // var tooltips = document.getElementsByClassName("tooltip");
+
+                // for (let tooltip of tooltips) {
+                //     tooltip.style.display = "none";
+                // }
+                
+                // If the linechart tab is selected
+    
+                if (className == "linechart") {
+
+                    swapElement(className);
+
+                }   else if (className == "candlestick") {
+
+                    swapElement(className);
+
+                } else if (className == "combo") {
+
+                    showAllElements("candlestick", "shadows", "linechart", "circlePoints", "area")
+                }
+                
+                // Function to show/hide the charts depending on tab selection 
+
+                function swapElement(element) {
+
+                    if (element == "candlestick") {
+                        showElement("candlestick");
+                        showElement("shadows");
+                        removeElement("circlePoints");
+                        removeElement("linechart");
+                        removeElement("area");
+
+                    } else if (element == "linechart") {
+                        removeElement("candlestick");
+                        removeElement("shadows");
+                        showElement("circlePoints");
+                        showElement("linechart");
+                        showElement("area");
+                    }
+                }
+
+                // Function to show all charts when combo tab is selected
+
+                function showAllElements(elOne, elTwo, elThree, elFour, elFive) {
+
+                    showElement(elOne);
+                    showElement(elTwo);
+                    showElement(elThree);
+                    showElement(elFour);
+                    showElement(elFive);
+                }
+
+                // Function to show single element
+                function showElement(el) {
+
+                    var element = document.getElementsByClassName(el);
+
+                    for (var i = 0, ii = element.length; i < ii; i++) {
+                        toggleElement(element[i], true);
+                    };
+                }
+
+                // Function to remove single element
+                function removeElement(el) {
+
+                    var element = document.getElementsByClassName(el);
+
+                    for (var i = 0, ii = element.length; i < ii; i++) {
+                        toggleElement(element[i], false);
+                    };
+                }
+            }
+
+        </script>
+    </body>
+</html>
